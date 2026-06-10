@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Tablero de Control Operativo — Aluar</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0e0c;--bg2:#111512;--bg3:#171c18;--bg4:#1d2420;
+  --border:rgba(255,255,255,0.07);--border2:rgba(255,255,255,0.13);
+  --text:#eef2ee;--text2:#8fa48f;--text3:#4a5e4a;
+  --al-green:#00843D;--al-green-light:#00a84f;--al-green-pale:#e6f4ed;
+  --al-silver:#c8d4c8;--al-dark:#0d1410;
+  --good:#2ecc71;--warn:#f39c12;--bad:#e74c3c;
+  --good-bg:rgba(46,204,113,0.12);--warn-bg:rgba(243,156,18,0.12);--bad-bg:rgba(231,76,60,0.12);
+  --radius:14px;--radius-sm:9px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:15px;line-height:1.6;min-height:100vh}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:200;background:rgba(11,14,12,0.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--al-green);height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 2.5rem}
+.nav-brand{display:flex;align-items:center;gap:12px;text-decoration:none}
+.nav-logo{width:36px;height:36px;background:var(--al-green);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-logo i{font-size:18px;color:#fff}
+.nav-title{font-size:15px;font-weight:600;color:var(--text);letter-spacing:0.02em}
+.nav-sub{font-size:11px;color:var(--text2);letter-spacing:0.04em}
+.nav-right{font-size:12px;color:var(--text3);border:0.5px solid var(--border2);padding:4px 12px;border-radius:99px}
+
+/* HERO */
+.hero{background:linear-gradient(160deg,#0b0e0c 0%,#0d1e13 50%,#0b0e0c 100%);border-bottom:1px solid rgba(0,132,61,0.3);padding:4rem 2.5rem 3rem;text-align:center;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-100px;left:50%;transform:translateX(-50%);width:600px;height:600px;background:radial-gradient(circle,rgba(0,132,61,0.08) 0%,transparent 70%);pointer-events:none}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:7px;background:rgba(0,132,61,0.15);border:1px solid rgba(0,132,61,0.4);color:var(--al-green-light);font-size:11px;font-weight:600;letter-spacing:0.08em;padding:5px 16px;border-radius:99px;margin-bottom:1.5rem;text-transform:uppercase}
+.hero h1{font-size:clamp(26px,4vw,44px);font-weight:700;letter-spacing:-0.025em;color:var(--text);margin-bottom:.75rem}
+.hero h1 em{color:var(--al-green-light);font-style:normal}
+.hero-desc{font-size:15px;color:var(--text2);max-width:560px;margin:0 auto 2.5rem}
+.hero-kpis{display:flex;justify-content:center;flex-wrap:wrap;gap:2.5rem}
+.kpi{text-align:center}
+.kpi-val{font-size:20px;font-weight:700;color:var(--al-green-light)}
+.kpi-lbl{font-size:11px;color:var(--text3);margin-top:2px;text-transform:uppercase;letter-spacing:0.05em}
+
+/* TABS */
+.tabs-wrapper{max-width:1140px;margin:2.5rem auto 0;padding:0 1.5rem}
+.tabs-nav{display:flex;gap:8px;border-bottom:1px solid var(--border2);padding-bottom:0}
+.tab-btn{display:flex;align-items:center;gap:8px;padding:12px 20px;background:transparent;border:none;cursor:pointer;font-size:14px;font-weight:500;color:var(--text2);border-radius:var(--radius-sm) var(--radius-sm) 0 0;border:1px solid transparent;border-bottom:none;position:relative;bottom:-1px;transition:all .2s}
+.tab-btn:hover{color:var(--text);background:var(--bg3)}
+.tab-btn.active{color:var(--al-green-light);background:var(--bg2);border-color:var(--border2);border-bottom-color:var(--bg2)}
+.tab-btn .tab-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:13px}
+.tab-btn.active .tab-icon.g{background:rgba(0,132,61,0.2);color:var(--al-green-light)}
+.tab-btn.active .tab-icon.a{background:rgba(243,156,18,0.2);color:#f39c12}
+.tab-btn.active .tab-icon.b{background:rgba(52,152,219,0.2);color:#3498db}
+.tab-btn .tab-icon.g{background:var(--bg3);color:var(--text3)}
+.tab-btn .tab-icon.a{background:var(--bg3);color:var(--text3)}
+.tab-btn .tab-icon.b{background:var(--bg3);color:var(--text3)}
+
+/* TAB PANELS */
+.tab-content{max-width:1140px;margin:0 auto;padding:1.5rem}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+
+/* AREA HEADER */
+.area-hdr{padding:18px 22px;border-radius:var(--radius);margin-bottom:1.5rem;display:flex;align-items:center;gap:14px}
+.area-hdr.g{background:rgba(0,132,61,0.08);border:1px solid rgba(0,132,61,0.25)}
+.area-hdr.a{background:rgba(243,156,18,0.07);border:1px solid rgba(243,156,18,0.2)}
+.area-hdr.b{background:rgba(52,152,219,0.07);border:1px solid rgba(52,152,219,0.2)}
+.area-hdr-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:20px}
+.area-hdr.g .area-hdr-icon{background:rgba(0,132,61,0.2);color:var(--al-green-light)}
+.area-hdr.a .area-hdr-icon{background:rgba(243,156,18,0.15);color:#f39c12}
+.area-hdr.b .area-hdr-icon{background:rgba(52,152,219,0.15);color:#3498db}
+.area-hdr-text h2{font-size:15px;font-weight:600}
+.area-hdr.g .area-hdr-text h2{color:#7dda9e}
+.area-hdr.a .area-hdr-text h2{color:#fac56a}
+.area-hdr.b .area-hdr-text h2{color:#85c1f5}
+.area-hdr-text p{font-size:12px;margin-top:2px;color:var(--text3)}
+
+/* INDICATOR GRID */
+.ind-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+
+/* INDICATOR CARD */
+.ind-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;transition:border-color .2s,transform .2s;cursor:pointer}
+.ind-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.ind-card.expanded{border-color:rgba(0,132,61,0.35)}
+
+.ind-card-header{padding:1.1rem 1.25rem;display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.ind-header-left{}
+.ind-eyebrow{font-size:10px;color:var(--text3);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:5px}
+.ind-badge{display:inline-block;font-size:10px;font-weight:700;letter-spacing:0.07em;padding:3px 10px;border-radius:6px;margin-bottom:7px}
+.badge-g{background:rgba(0,132,61,0.2);color:#7dda9e;border:0.5px solid rgba(0,132,61,0.4)}
+.badge-a{background:rgba(243,156,18,0.2);color:#fac56a;border:0.5px solid rgba(243,156,18,0.4)}
+.badge-b{background:rgba(52,152,219,0.2);color:#85c1f5;border:0.5px solid rgba(52,152,219,0.4)}
+.ind-name{font-size:15px;font-weight:600;color:var(--text)}
+
+/* SEMAFORO */
+.semaforo{display:flex;flex-direction:column;align-items:center;gap:5px;flex-shrink:0}
+.semaforo-box{width:40px;background:var(--bg4);border:1px solid var(--border2);border-radius:8px;padding:5px;display:flex;flex-direction:column;gap:4px;align-items:center}
+.sem-light{width:18px;height:18px;border-radius:50%;opacity:0.18;transition:opacity .3s,box-shadow .3s}
+.sem-light.on-red{opacity:1;background:#e74c3c;box-shadow:0 0 8px #e74c3c}
+.sem-light.on-warn{opacity:1;background:#f39c12;box-shadow:0 0 8px #f39c12}
+.sem-light.on-green{opacity:1;background:#2ecc71;box-shadow:0 0 8px #2ecc71}
+.sem-light:not(.on-red):not(.on-warn):not(.on-green){background:var(--bg4);border:1px solid var(--border2)}
+.sem-label{font-size:9px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase}
+.sem-label.red{color:#e74c3c}.sem-label.warn{color:#f39c12}.sem-label.good{color:#2ecc71}
+
+/* VALUES ROW */
+.vals-row{display:flex;gap:10px;padding:0 1.25rem 1.1rem}
+.val-box{flex:1;background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px;text-align:center}
+.val-num{font-size:22px;font-weight:700;margin-bottom:2px}
+.val-num.warn{color:var(--warn)}.val-num.good{color:var(--good)}.val-num.bad{color:var(--bad)}
+.val-yr{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em}
+
+/* EXPAND TOGGLE */
+.expand-row{padding:0 1.25rem .85rem;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text3)}
+.expand-row i{transition:transform .25s}
+.ind-card.expanded .expand-row i{transform:rotate(180deg)}
+
+/* EXPANDED CONTENT */
+.ind-detail{display:none;padding:0 1.25rem 1.25rem;border-top:1px solid var(--border)}
+.ind-card.expanded .ind-detail{display:block}
+
+.detail-section{margin-top:1.1rem}
+.detail-label{font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text3);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.detail-label i{font-size:13px}
+
+/* FORMULA BOX */
+.formula-box{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 14px}
+.formula-box .f-main{font-size:13px;font-weight:500;color:var(--text);margin-bottom:3px}
+.formula-box .f-note{font-size:11px;color:var(--text2)}
+
+/* CHART */
+.chart-wrap{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:14px;height:200px;position:relative}
+
+/* DESGLOSE */
+.desglose-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.dg-item{background:var(--bg3);border:0.5px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px}
+.dg-lbl{font-size:11px;color:var(--text2);margin-bottom:4px}
+.dg-val{font-size:16px;font-weight:600;color:var(--text)}
+.dg-delta{font-size:11px;margin-top:2px}
+.dg-delta.up{color:var(--bad)}.dg-delta.down{color:var(--good)}.dg-delta.neutral{color:var(--text3)}
+
+/* ALERT BOX */
+.alert-box{border-radius:var(--radius-sm);padding:10px 14px;font-size:12px;line-height:1.6;margin-top:1rem}
+.alert-box strong{font-weight:700}
+.al-green{background:rgba(46,204,113,0.08);border:0.5px solid rgba(46,204,113,0.3);color:#7dda9e}
+.al-warn{background:rgba(243,156,18,0.08);border:0.5px solid rgba(243,156,18,0.3);color:#fac56a}
+.al-red{background:rgba(231,76,60,0.08);border:0.5px solid rgba(231,76,60,0.3);color:#f1948a}
+
+/* FOOTER */
+footer{text-align:center;border-top:1px solid rgba(0,132,61,0.2);padding:2rem 1rem;font-size:12px;color:var(--text3);margin-top:2rem}
+footer span{color:var(--al-green-light)}
+
+@media(max-width:640px){
+  nav{padding:0 1rem}.nav-right{display:none}
+  .hero{padding:2.5rem 1rem 2rem}
+  .tabs-wrapper,.tab-content{padding:0 .75rem}
+  .tab-btn span{display:none}
+  .ind-grid{grid-template-columns:1fr}
+  .desglose-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-brand" href="#">
+    <div class="nav-logo"><i class="ti ti-atom-2"></i></div>
+    <div>
+      <div class="nav-title">ALUAR</div>
+      <div class="nav-sub">Tablero de Control Operativo</div>
+    </div>
+  </a>
+  <div class="nav-right">FY2025 · Aluminio Argentino S.A.I.C.</div>
+</nav>
+
+<div class="hero">
+  <div class="hero-eyebrow"><i class="ti ti-chart-dots-3"></i> TCO · Monitoreo Operacional</div>
+  <h1>Tablero de Control<br><em>Operativo Aluar</em></h1>
+  <p class="hero-desc">Seguimiento en tiempo real del desempeño operacional · Único productor de aluminio primario de Argentina</p>
+  <div class="hero-kpis">
+    <div class="kpi"><div class="kpi-val">460.000 tn</div><div class="kpi-lbl">Capacidad anual</div></div>
+    <div class="kpi"><div class="kpi-val">784</div><div class="kpi-lbl">Cubas electrolíticas</div></div>
+    <div class="kpi"><div class="kpi-val">~80%</div><div class="kpi-lbl">Producción exportada</div></div>
+    <div class="kpi"><div class="kpi-val">USD 3.700/tn</div><div class="kpi-lbl">Precio LME</div></div>
+    <div class="kpi"><div class="kpi-val">2.272</div><div class="kpi-lbl">Empleados directos</div></div>
+  </div>
+</div>
+
+<div class="tabs-wrapper">
+  <div class="tabs-nav">
+    <button class="tab-btn active" onclick="switchTab(0,this)">
+      <div class="tab-icon g"><i class="ti ti-settings"></i></div>
+      <span>Producción y calidad</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab(1,this)">
+      <div class="tab-icon a"><i class="ti ti-bolt"></i></div>
+      <span>Energía y costos</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab(2,this)">
+      <div class="tab-icon b"><i class="ti ti-trending-up"></i></div>
+      <span>Comercialización y margen</span>
+    </button>
+  </div>
+</div>
+
+<div class="tab-content">
+
+<!-- ===== PANEL 0: PRODUCCIÓN ===== -->
+<div class="tab-panel active" id="panel-0">
+  <div class="area-hdr g">
+    <div class="area-hdr-icon"><i class="ti ti-settings"></i></div>
+    <div class="area-hdr-text">
+      <h2>Área 1 — Producción y calidad de producto</h2>
+      <p>Proceso de electrólisis · 784 cubas · 460.000 tn/año · Puerto Madryn, Chubut</p>
+    </div>
+  </div>
+  <div class="ind-grid">
+
+    <!-- INDICADOR 1 -->
+    <div class="ind-card" id="card-0" onclick="toggleCard('card-0')">
+      <div class="ind-card-header">
+        <div class="ind-header-left">
+          <div class="ind-eyebrow">Indicador de actividad operativa</div>
+          <div class="ind-badge badge-g">ROTACIÓN DE EXISTENCIAS</div>
+          <div class="ind-name">Rotación de inventario (producción)</div>
+        </div>
+        <div class="semaforo">
+          <div class="semaforo-box">
+            <div class="sem-light"></div>
+            <div class="sem-light on-warn"></div>
+            <div class="sem-light"></div>
+          </div>
+          <div class="sem-label warn">PRECAUCIÓN</div>
+        </div>
+      </div>
+      <div class="vals-row">
+        <div class="val-box"><div class="val-num warn">1,21x</div><div class="val-yr">FY2025</div></div>
+        <div class="val-box"><div class="val-num good">1,33x</div><div class="val-yr">FY2024</div></div>
+      </div>
+      <div class="expand-row"><i class="ti ti-chevron-down"></i> Ver análisis completo</div>
+      <div class="ind-detail">
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-math-function"></i>Fórmula</div>
+          <div class="formula-box">
+            <div class="f-main">Costo de ventas ÷ Inventario promedio</div>
+            <div class="f-note">En aluminio primario la rotación baja es estructural por el ciclo productivo largo (~300 días)</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-chart-bar"></i>Evolución histórica</div>
+          <div class="chart-wrap"><canvas id="chart-rot-inv"></canvas></div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-list-details"></i>Desglose detallado</div>
+          <div class="desglose-grid">
+            <div class="dg-item"><div class="dg-lbl">Costo de ventas FY2025</div><div class="dg-val">$2.190.000 M</div><div class="dg-delta neutral">—</div></div>
+            <div class="dg-item"><div class="dg-lbl">Inventario promedio FY2025</div><div class="dg-val">$1.140.000 M</div><div class="dg-delta up">▲ vs FY2024</div></div>
+            <div class="dg-item"><div class="dg-lbl">Variación rotación</div><div class="dg-val">−0,12x</div><div class="dg-delta up">▲ Stock acumulado</div></div>
+            <div class="dg-item"><div class="dg-lbl">Causa principal</div><div class="dg-val">Aranceles EE.UU.</div><div class="dg-delta up">25% desde mar-25</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-file-description"></i>Análisis</div>
+          <p style="font-size:13px;color:var(--text2);line-height:1.65">Mide cuántas veces se "consume" el inventario durante el ejercicio. La caída de 1,33x a 1,21x indica acumulación de producto terminado asociada a los aranceles del 25% que impuso EE.UU. desde marzo 2025, principal destino de exportación (49% del total). Cada 0,1x de caída implica mayor inmovilización de capital.</p>
+        </div>
+        <div class="alert-box al-warn"><strong>⚠ Alerta operativa:</strong> Si cae por debajo de 1,0x → sobrestock crítico. Revisar volumen despachado y diversificar destinos de exportación.</div>
+      </div>
+    </div>
+
+    <!-- INDICADOR 2 -->
+    <div class="ind-card" id="card-1" onclick="toggleCard('card-1')">
+      <div class="ind-card-header">
+        <div class="ind-header-left">
+          <div class="ind-eyebrow">Indicador de actividad operativa</div>
+          <div class="ind-badge badge-g">DÍAS DE INMOVILIZACIÓN</div>
+          <div class="ind-name">Días de inmovilización de inventarios</div>
+        </div>
+        <div class="semaforo">
+          <div class="semaforo-box">
+            <div class="sem-light"></div>
+            <div class="sem-light on-warn"></div>
+            <div class="sem-light"></div>
+          </div>
+          <div class="sem-label warn">PRECAUCIÓN</div>
+        </div>
+      </div>
+      <div class="vals-row">
+        <div class="val-box"><div class="val-num warn">297 días</div><div class="val-yr">FY2025</div></div>
+        <div class="val-box"><div class="val-num good">271 días</div><div class="val-yr">FY2024</div></div>
+      </div>
+      <div class="expand-row"><i class="ti ti-chevron-down"></i> Ver análisis completo</div>
+      <div class="ind-detail">
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-math-function"></i>Fórmula</div>
+          <div class="formula-box">
+            <div class="f-main">[(Inv. inicial + Inv. final) ÷ 2] × 360 ÷ Costo de ventas</div>
+            <div class="f-note">Incluye: alúmina importada → electrólisis → lingotes → despacho desde Puerto Madryn</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-chart-bar"></i>Evolución histórica</div>
+          <div class="chart-wrap"><canvas id="chart-dias-inv"></canvas></div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-list-details"></i>Desglose detallado</div>
+          <div class="desglose-grid">
+            <div class="dg-item"><div class="dg-lbl">Días FY2025</div><div class="dg-val">297 días</div><div class="dg-delta up">▲ +26 días vs FY2024</div></div>
+            <div class="dg-item"><div class="dg-lbl">Capital inmovilizado</div><div class="dg-val">$1,14 billones</div><div class="dg-delta up">▲ Impacto capital trabajo</div></div>
+            <div class="dg-item"><div class="dg-lbl">Alerta crítica</div><div class="dg-val">> 330 días</div><div class="dg-delta neutral">Umbral de riesgo</div></div>
+            <div class="dg-item"><div class="dg-lbl">Ciclo óptimo</div><div class="dg-val">240–270 días</div><div class="dg-delta down">✓ Referencia industria</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-file-description"></i>Análisis</div>
+          <p style="font-size:13px;color:var(--text2);line-height:1.65">Cuantifica en días lo que la rotación mide en veces. El aumento de 26 días se atribuye directamente al enlentecimiento de despachos hacia EE.UU. Con $1,14 billones inmovilizados, cada día adicional de ciclo presiona el capital de trabajo y la capacidad de pago corriente.</p>
+        </div>
+        <div class="alert-box al-warn"><strong>⚠ Alerta operativa:</strong> Si supera 330 días → riesgo de sobrestock sistémico. Cruzar con volumen despachado diario y activar diversificación de mercados.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== PANEL 1: ENERGÍA ===== -->
+<div class="tab-panel" id="panel-1">
+  <div class="area-hdr a">
+    <div class="area-hdr-icon"><i class="ti ti-bolt"></i></div>
+    <div class="area-hdr-text">
+      <h2>Área 2 — Energía y costos</h2>
+      <p>Futaleufú (560 MW) + Eólico (246 MW) vs red nacional · principal driver de costo operativo</p>
+    </div>
+  </div>
+  <div class="ind-grid">
+
+    <!-- INDICADOR 3 -->
+    <div class="ind-card" id="card-2" onclick="toggleCard('card-2')">
+      <div class="ind-card-header">
+        <div class="ind-header-left">
+          <div class="ind-eyebrow">Indicador de rentabilidad operacional</div>
+          <div class="ind-badge badge-a">MARGEN EBITDA</div>
+          <div class="ind-name">Margen EBITDA sobre ventas</div>
+        </div>
+        <div class="semaforo">
+          <div class="semaforo-box">
+            <div class="sem-light"></div>
+            <div class="sem-light on-warn"></div>
+            <div class="sem-light"></div>
+          </div>
+          <div class="sem-label warn">PRECAUCIÓN</div>
+        </div>
+      </div>
+      <div class="vals-row">
+        <div class="val-box"><div class="val-num warn">14,9%</div><div class="val-yr">FY2025</div></div>
+        <div class="val-box"><div class="val-num good">22,4%</div><div class="val-yr">FY2024</div></div>
+      </div>
+      <div class="expand-row"><i class="ti ti-chevron-down"></i> Ver análisis completo</div>
+      <div class="ind-detail">
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-math-function"></i>Fórmula</div>
+          <div class="formula-box">
+            <div class="f-main">(EBIT + Depreciaciones y Amortizaciones) ÷ Ventas netas × 100</div>
+            <div class="f-note">Excluye distorsiones por inflación (NIC 29), impuesto diferido y carga impositiva extraordinaria</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-chart-bar"></i>Evolución histórica</div>
+          <div class="chart-wrap"><canvas id="chart-ebitda"></canvas></div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-list-details"></i>Desglose detallado</div>
+          <div class="desglose-grid">
+            <div class="dg-item"><div class="dg-lbl">Margen FY2025</div><div class="dg-val">14,9%</div><div class="dg-delta up">▼ −7,5 p.p.</div></div>
+            <div class="dg-item"><div class="dg-lbl">D&A estables</div><div class="dg-val">~$100.000 M</div><div class="dg-delta down">✓ Sin deterioro interno</div></div>
+            <div class="dg-item"><div class="dg-lbl">Causa 1</div><div class="dg-val">Caída LME</div><div class="dg-delta up">▼ Precio aluminio global</div></div>
+            <div class="dg-item"><div class="dg-lbl">Causa 2</div><div class="dg-val">Arancel 25%</div><div class="dg-delta up">▼ EE.UU. desde mar-25</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-file-description"></i>Análisis</div>
+          <p style="font-size:13px;color:var(--text2);line-height:1.65">El indicador central de eficiencia operativa. La caída de 7,5 p.p. responde exclusivamente a factores externos: baja del precio LME y aranceles EE.UU. Las D&A se mantienen estables (~$100.000 M), confirmando que los costos de estructura internos no son el problema. El EBITDA positivo en 14,9% indica que la operación sigue siendo viable.</p>
+        </div>
+        <div class="alert-box al-warn"><strong>⚠ Alerta operativa:</strong> Si cae por debajo del 10% → revisar mix de mercados. Reducir exposición a EE.UU. y aumentar despachos a Brasil y Japón. Renegociar contratos de alúmina.</div>
+      </div>
+    </div>
+
+    <!-- INDICADOR 4 -->
+    <div class="ind-card" id="card-3" onclick="toggleCard('card-3')">
+      <div class="ind-card-header">
+        <div class="ind-header-left">
+          <div class="ind-eyebrow">Indicador de actividad operativa</div>
+          <div class="ind-badge badge-a">ROTACIÓN DEL ACTIVO TOTAL</div>
+          <div class="ind-name">Rotación del activo total</div>
+        </div>
+        <div class="semaforo">
+          <div class="semaforo-box">
+            <div class="sem-light"></div>
+            <div class="sem-light on-warn"></div>
+            <div class="sem-light"></div>
+          </div>
+          <div class="sem-label warn">PRECAUCIÓN</div>
+        </div>
+      </div>
+      <div class="vals-row">
+        <div class="val-box"><div class="val-num warn">0,55x</div><div class="val-yr">FY2025</div></div>
+        <div class="val-box"><div class="val-num good">0,63x</div><div class="val-yr">FY2024</div></div>
+      </div>
+      <div class="expand-row"><i class="ti ti-chevron-down"></i> Ver análisis completo</div>
+      <div class="ind-detail">
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-math-function"></i>Fórmula</div>
+          <div class="formula-box">
+            <div class="f-main">Ventas netas ÷ Activo total promedio</div>
+            <div class="f-note">En industrias capital-intensivas como el aluminio, valores < 1x son normales y esperables</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-chart-bar"></i>Evolución histórica</div>
+          <div class="chart-wrap"><canvas id="chart-rot-activo"></canvas></div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-list-details"></i>Desglose detallado</div>
+          <div class="desglose-grid">
+            <div class="dg-item"><div class="dg-lbl">Ventas netas FY2025</div><div class="dg-val">$1.081.000 M</div><div class="dg-delta up">▼ Caída por LME</div></div>
+            <div class="dg-item"><div class="dg-lbl">Activo total promedio</div><div class="dg-val">$1.957.000 M</div><div class="dg-delta up">▲ Inv. Parque Eólico IV</div></div>
+            <div class="dg-item"><div class="dg-lbl">Inversión Parque Eólico IV</div><div class="dg-val">~USD 400M</div><div class="dg-delta neutral">Expansión 336 MW</div></div>
+            <div class="dg-item"><div class="dg-lbl">Alerta crítica</div><div class="dg-val">< 0,45x</div><div class="dg-delta neutral">Umbral de riesgo</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-file-description"></i>Análisis</div>
+          <p style="font-size:13px;color:var(--text2);line-height:1.65">La caída de 0,63x a 0,55x refleja la divergencia entre activos crecientes (inversión ~USD 400M en Parque Eólico IV) e ingresos decrecientes por la caída del LME. Es una compresión transitoria: una vez que el parque opere a plena capacidad y los precios se recuperen, el indicador debería normalizar.</p>
+        </div>
+        <div class="alert-box al-warn"><strong>⚠ Alerta operativa:</strong> Si cae por debajo de 0,45x → activos subutilizados. Revisar utilización de capacidad en las 784 cubas y acelerar entrada en operación del Parque Eólico IV.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== PANEL 2: COMERCIALIZACIÓN ===== -->
+<div class="tab-panel" id="panel-2">
+  <div class="area-hdr b">
+    <div class="area-hdr-icon"><i class="ti ti-trending-up"></i></div>
+    <div class="area-hdr-text">
+      <h2>Área 3 — Comercialización y margen</h2>
+      <p>80% exportación · precio LME USD 3.700/tn · ALUA ~$1.020 en BYMA · 49% destino EE.UU.</p>
+    </div>
+  </div>
+  <div class="ind-grid">
+
+    <!-- INDICADOR 5 -->
+    <div class="ind-card" id="card-4" onclick="toggleCard('card-4')">
+      <div class="ind-card-header">
+        <div class="ind-header-left">
+          <div class="ind-eyebrow">Indicador de liquidez financiera</div>
+          <div class="ind-badge badge-b">LIQUIDEZ CORRIENTE</div>
+          <div class="ind-name">Liquidez corriente</div>
+        </div>
+        <div class="semaforo">
+          <div class="semaforo-box">
+            <div class="sem-light on-green"></div>
+            <div class="sem-light"></div>
+            <div class="sem-light"></div>
+          </div>
+          <div class="sem-label good">ÓPTIMO</div>
+        </div>
+      </div>
+      <div class="vals-row">
+        <div class="val-box"><div class="val-num good">2,44x</div><div class="val-yr">FY2025</div></div>
+        <div class="val-box"><div class="val-num good">4,93x</div><div class="val-yr">FY2024</div></div>
+      </div>
+      <div class="expand-row"><i class="ti ti-chevron-down"></i> Ver análisis completo</div>
+      <div class="ind-detail">
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-math-function"></i>Fórmula</div>
+          <div class="formula-box">
+            <div class="f-main">Activo corriente ÷ Pasivo corriente</div>
+            <div class="f-note">Clave para monitorear el flujo de caja de exportaciones dolarizadas vs pasivos corrientes en pesos</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-chart-bar"></i>Evolución histórica</div>
+          <div class="chart-wrap"><canvas id="chart-liquidez"></canvas></div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-list-details"></i>Desglose detallado</div>
+          <div class="desglose-grid">
+            <div class="dg-item"><div class="dg-lbl">Activo corriente FY2025</div><div class="dg-val">$1.470.164 M</div><div class="dg-delta neutral">—</div></div>
+            <div class="dg-item"><div class="dg-lbl">Pasivo corriente FY2025</div><div class="dg-val">$601.364 M</div><div class="dg-delta up">▲ +74% vs FY2024</div></div>
+            <div class="dg-item"><div class="dg-lbl">Causa del aumento</div><div class="dg-val">ONs vencidas</div><div class="dg-delta neutral">Parque Eólico Fase IV</div></div>
+            <div class="dg-item"><div class="dg-lbl">Calificación</div><div class="dg-val">HOLGADA</div><div class="dg-delta down">✓ > 1,5x mínimo</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-file-description"></i>Análisis</div>
+          <p style="font-size:13px;color:var(--text2);line-height:1.65">La caída del 50% se explica por el vencimiento de Obligaciones Negociables del Parque Eólico IV que migraron al pasivo corriente. A pesar de esto, 2,44x sigue siendo holgado. El indicador es crítico en el área comercial porque Aluar cobra en dólares (exportaciones) pero paga gran parte de sus pasivos en pesos.</p>
+        </div>
+        <div class="alert-box al-green"><strong>✓ Estado:</strong> Posición holgada (2,44x > 1,5x mínimo requerido). Alerta si cae por debajo de 1,5x → revisar timing de cobranzas y posibles refinanciaciones.</div>
+      </div>
+    </div>
+
+    <!-- INDICADOR 6 -->
+    <div class="ind-card" id="card-5" onclick="toggleCard('card-5')">
+      <div class="ind-card-header">
+        <div class="ind-header-left">
+          <div class="ind-eyebrow">Indicador de rentabilidad</div>
+          <div class="ind-badge badge-b">MARGEN NETO SOBRE VENTAS</div>
+          <div class="ind-name">Margen neto sobre ventas</div>
+        </div>
+        <div class="semaforo">
+          <div class="semaforo-box">
+            <div class="sem-light"></div>
+            <div class="sem-light"></div>
+            <div class="sem-light on-red"></div>
+          </div>
+          <div class="sem-label red">CRÍTICO</div>
+        </div>
+      </div>
+      <div class="vals-row">
+        <div class="val-box"><div class="val-num bad">0,84%</div><div class="val-yr">FY2025</div></div>
+        <div class="val-box"><div class="val-num good">9,80%</div><div class="val-yr">FY2024</div></div>
+      </div>
+      <div class="expand-row"><i class="ti ti-chevron-down"></i> Ver análisis completo</div>
+      <div class="ind-detail">
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-math-function"></i>Fórmula</div>
+          <div class="formula-box">
+            <div class="f-main">Resultado neto ÷ Ventas netas × 100</div>
+            <div class="f-note">⚠ En contexto inflacionario (NIC 29), siempre leer junto al EBITDA para distinguir distorsiones fiscales</div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-chart-bar"></i>Evolución histórica</div>
+          <div class="chart-wrap"><canvas id="chart-margen-neto"></canvas></div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-list-details"></i>Desglose detallado</div>
+          <div class="desglose-grid">
+            <div class="dg-item"><div class="dg-lbl">Margen neto FY2025</div><div class="dg-val">0,84%</div><div class="dg-delta up">▼ −8,96 p.p.</div></div>
+            <div class="dg-item"><div class="dg-lbl">Tasa efectiva IIGG</div><div class="dg-val">84%</div><div class="dg-delta up">▲ Extraordinaria FY2025</div></div>
+            <div class="dg-item"><div class="dg-lbl">EBITDA (referencia)</div><div class="dg-val">14,9%</div><div class="dg-delta down">✓ Operación viable</div></div>
+            <div class="dg-item"><div class="dg-lbl">Tipo de deterioro</div><div class="dg-val">Fiscal/Contable</div><div class="dg-delta neutral">No operativo</div></div>
+          </div>
+        </div>
+        <div class="detail-section">
+          <div class="detail-label"><i class="ti ti-file-description"></i>Análisis</div>
+          <p style="font-size:13px;color:var(--text2);line-height:1.65">Caída dramática pero no refleja deterioro operativo real. La tasa efectiva del impuesto a las ganancias alcanzó el 84% del resultado antes de impuestos en FY2025, distorsionando el margen neto. El EBITDA positivo en 14,9% confirma que la operación es viable. Funciona como señal de alerta temprana ante nuevas presiones fiscales o caídas del LME.</p>
+        </div>
+        <div class="alert-box al-red"><strong>⚠ Alerta operativa:</strong> Si cae a negativo → resultado neto en pérdida. Cruzar SIEMPRE con EBITDA para distinguir si es problema operativo real o distorsión contable/fiscal.</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+</div>
+
+<footer>
+  Tablero de Control Operativo · <span>Aluar Aluminio Argentino S.A.I.C.</span> · FY2025 / FY2024 · Profesor: Casella Fernando
+</footer>
+
+<script>
+function switchTab(idx, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('panel-' + idx).classList.add('active');
+}
+
+function toggleCard(id) {
+  const card = document.getElementById(id);
+  card.classList.toggle('expanded');
+}
+
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#4a5e4a', font: { size: 11 } } },
+    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#4a5e4a', font: { size: 11 } } }
+  }
+};
+
+function mkChart(id, labels, data, color, yLabel) {
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: data.map((v,i) => i === data.length-1 ? color + 'cc' : color + '55'),
+        borderColor: color,
+        borderWidth: 1.5,
+        borderRadius: 5,
+      }]
+    },
+    options: {
+      ...chartDefaults,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => yLabel + ctx.parsed.y }
+        }
+      }
+    }
+  });
+}
+
+window.addEventListener('load', () => {
+  mkChart('chart-rot-inv',   ['FY2021','FY2022','FY2023','FY2024','FY2025'], [1.48, 1.39, 1.41, 1.33, 1.21], '#2ecc71', '');
+  mkChart('chart-dias-inv',  ['FY2021','FY2022','FY2023','FY2024','FY2025'], [243, 259, 255, 271, 297],       '#f39c12', '');
+  mkChart('chart-ebitda',    ['FY2021','FY2022','FY2023','FY2024','FY2025'], [18.2, 21.5, 24.1, 22.4, 14.9], '#f39c12', '');
+  mkChart('chart-rot-activo',['FY2021','FY2022','FY2023','FY2024','FY2025'], [0.71, 0.68, 0.66, 0.63, 0.55], '#f39c12', '');
+  mkChart('chart-liquidez',  ['FY2021','FY2022','FY2023','FY2024','FY2025'], [3.21, 2.98, 3.54, 4.93, 2.44], '#3498db', '');
+  mkChart('chart-margen-neto',['FY2021','FY2022','FY2023','FY2024','FY2025'],[5.2,  7.8,  8.9,  9.80, 0.84], '#e74c3c', '');
+});
+</script>
+</body>
+</html>
